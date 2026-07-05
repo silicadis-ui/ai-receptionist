@@ -259,8 +259,8 @@ async function handleCall(elksWs) {
           format: { type: 'audio/pcm', rate: 24000 },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.9,
-            silence_duration_ms: 800,
+            threshold: 0.5,
+            silence_duration_ms: 350,
           },
         },
         output: {
@@ -270,13 +270,9 @@ async function handleCall(elksWs) {
       },
     },
   });
-
-  // Hälsning direkt när samtalet kopplas upp
-  safeSend(openaiWs, {
-    type: 'response.create',
-    response: {
-    instructions:
-  "Säg exakt: Hej! Du har kommit till AE Solutions AI-receptionist. Detta är en demoversion där du kan testa hur en AI-receptionist kan svara i telefon för företag. Hur kan jag hjälpa dig idag?",
+safeSend(openaiWs, {
+  type: 'response.create',
+});
     },
   });
 
