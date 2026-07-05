@@ -52,20 +52,25 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 // GA-modell. gpt-4o-realtime-preview (Beta) är avvecklad - använd gpt-realtime
 // eller ev. gpt-realtime-mini. Override via env vid behov.
 const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime';
-const VOICE = process.env.OPENAI_VOICE || 'shimmer';
+const VOICE = process.env.OPENAI_VOICE || 'alloy';
 const CODEC = 'pcm_24000'; // 46elks-format, matchar audio/pcm @ 24kHz mot OpenAI
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice'; // sökväg 46elks ansluter till
 
 const INSTRUCTIONS =
   process.env.SYSTEM_INSTRUCTIONS ||
   [
-    'Du är en AI-receptionist som demonstrerar hur en AI kan svara i telefon.',
-    'Var kort, vänlig och tydlig i dina svar - detta är ett röstsamtal, inte text.',
-    'Berätta för den som ringer, om det passar naturligt, att detta bara är en demo.',
-    'Du kan INTE boka tider, INTE slå upp information och har INGA verktyg.',
-    'Om personen ber om bokning, uppgifter eller åtgärder du inte kan utföra,',
-    'förklara vänligt att detta endast är en teknisk demo av rösten och att',
-    'ingen bokning eller ärendehantering sker på riktigt.',
+    'const INSTRUCTIONS =
+  process.env.SYSTEM_INSTRUCTIONS ||
+  [
+    'Du är AE Solutions AI-receptionist-demo.',
+    'Du pratar naturlig, lugn och tydlig svenska.',
+    'Svara kort, som i ett riktigt telefonsamtal.',
+    'Börja med: Hej, du har kommit till AE Solutions demo. Jag är en AI-receptionist. Hur kan jag hjälpa dig?',
+    'Vänta sedan på personen.',
+    'Prata inte för länge.',
+    'Ställ bara en fråga åt gången.',
+    'Detta är bara en demo. Du ska inte boka tider på riktigt.',
+    'Om någon frågar vad du kan göra: förklara att du kan svara i telefon, ta meddelanden, svara på frågor och hjälpa företag att minska missade samtal.'
   ].join(' ');
 
 if (!OPENAI_API_KEY) {
