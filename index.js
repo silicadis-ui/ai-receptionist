@@ -1,50 +1,60 @@
 import express from "express";
+import http from "http";
+import { WebSocketServer } from "ws";
 
 const app = express();
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Server fungerar");
+  res.send("AE Solutions demo-server fungerar");
 });
 
-app.post("/incoming-call", async (req, res) => {
-  try {
-    const callId = req.body?.call_id || req.body?.id;
-    if (!callId) return res.status(400).send("Missing call_id");
+const server = http.createServer(app);
 
-    const instructions = `
-Du är en professionell AI-receptionist i Sverige och pratar naturlig svenska.
+const wss = new WebSocketServer({ server });
 
-Du ska:
-- Hälsa och säga vilket företag kunden ringt (om info finns).
-- Svara på vanliga frågor (öppettider, adress, priser/tjänster).
-- Ta bokningar: fråga datum/tid, tjänst, namn, telefonnummer, önskemål.
-- Bekräfta alltid sammanfattning innan du avslutar.
+wss.on("connection", (ws) => {
+  console.log("46elks WebSocket ansluten");
 
-Om kunden vill prata med personal:
-- Ta ett meddelande (namn + nummer + ärende) och säg att personalen ringer upp.
-    `.trim();
+  ws.on("message", (message) => {
+    console.log("Meddelande från 46elks:", message.toString());
 
-    const r = await fetch(`https://api.openai.com/v1/realtime/calls/${callId}/accept`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        session: { instructions }
-      }),
-    });
+    try {
+      const data = JSON.parse(message.toString());
 
-    if (!r.ok) {
-      const txt = await r.text();
-      return res.status(500).send(txt);
+      if (data.t === "hello") {
+        console.log("Samtal startat:", data.callid);
+
+        ws.send(JSON.stringify({
+          t: "sending",
+          format: "pcm_24000"
+        }));
+
+        ws.send(JSON.stringify({
+          t: "listening",
+          format: "pcm_24000"
+        }));
+      }
+
+      if (data.t === "audio") {
+        console.log("Tar emot ljud...");
+      }
+
+      if (data.t === "bye") {
+        console.log("Samtal avslutat:", data.reason);
+      }
+    } catch (error) {
+      console.error("Fel vid meddelande:", error);
     }
+  });
 
-    return res.sendStatus(200);
-  } catch (e) {
-    return res.status(500).send("Server error");
-  }
+  ws.on("close", () => {
+    console.log("WebSocket stängd");
+  });
 });
 
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+  console.log(`Server körs på port ${PORT}`);
+});
