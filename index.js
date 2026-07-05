@@ -56,9 +56,6 @@ const VOICE = process.env.OPENAI_VOICE || 'alloy';
 const CODEC = 'pcm_24000'; // 46elks-format, matchar audio/pcm @ 24kHz mot OpenAI
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice'; // sökväg 46elks ansluter till
 
-const INSTRUCTIONS =
-  process.env.SYSTEM_INSTRUCTIONS ||
-  [
     'const INSTRUCTIONS =
   process.env.SYSTEM_INSTRUCTIONS ||
   [
