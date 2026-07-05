@@ -52,7 +52,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 // GA-modell. gpt-4o-realtime-preview (Beta) är avvecklad - använd gpt-realtime
 // eller ev. gpt-realtime-mini. Override via env vid behov.
 const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime';
-const VOICE = process.env.OPENAI_VOICE || 'alloy';
+const VOICE = process.env.OPENAI_VOICE || 'cedar';
 const CODEC = 'pcm_24000'; // 46elks-format, matchar audio/pcm @ 24kHz mot OpenAI
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice'; // sökväg 46elks ansluter till
 
