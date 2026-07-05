@@ -271,7 +271,7 @@ async function handleCall(elksWs) {
     },
   });
 safeSend(openaiWs, {
-  type: 'response.create',
+  type: 'response.create'
 });
     },
   });
