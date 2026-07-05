@@ -268,8 +268,8 @@ async function handleCall(elksWs) {
   safeSend(openaiWs, {
     type: 'response.create',
     response: {
-      instructions:
-        'Hälsa kort på den som ringer och nämn att detta är en AI-receptionist-demo.',
+     instructions:
+  'Säg exakt: Hej! Du har kommit till AE Solutions AI-receptionist. Detta är en demoversion där du kan uppleva hur en AI-receptionist kan svara i telefon för företag. Hur kan jag hjälpa dig idag?',
     },
   });
 
