@@ -273,8 +273,7 @@ async function handleCall(elksWs) {
 safeSend(openaiWs, {
   type: 'response.create'
 });
-    },
-  });
+   
 
   // --- 4. Deklarera ljudformat till 46elks ----------------------------------
 
