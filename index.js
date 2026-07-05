@@ -251,7 +251,9 @@ async function handleCall(elksWs) {
     type: 'session.update',
     session: {
       type: 'realtime',
-      instructions: INSTRUCTIONS,
+      ...(OPENAI_PROMPT_ID
+  ? { prompt: { id: OPENAI_PROMPT_ID } }
+  : { instructions: INSTRUCTIONS }), 
       audio: {
         input: {
           format: { type: 'audio/pcm', rate: 24000 },
