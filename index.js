@@ -1,9 +1,28 @@
 #!/usr/bin/env node
 /**
- * 46elks <-> OpenAI Realtime API voice bridge (Node.js version)
+ * 46elks <-> OpenAI Realtime API (GA) voice bridge (Node.js version)
  *
  * Baserad på 46elks officiella Python-exempel:
  * https://46elks.se/tutorials/real-time-two-way-voice-calls-with-websocket
+ *
+ * UPPDATERAD för OpenAI Realtime GA API (v1/realtime, ej längre beta).
+ * Den gamla Beta-shapen (query-param model + header "OpenAI-Beta: realtime=v1")
+ * ger numera felet:
+ *   invalid_request_error.beta_api_shape_disabled
+ *   "The Realtime Beta API is no longer supported. Please use /v1/realtime for the GA API."
+ *
+ * Ändringar mot Beta -> GA (endast OpenAI-sidan, 46elks-protokollet är orört):
+ *  - Ingen "OpenAI-Beta: realtime=v1"-header längre.
+ *  - session.update kräver numera session.type = "realtime".
+ *  - Ljudformat anges som objekt: { type: "audio/pcm", rate: 24000 } istället för strängen "pcm16".
+ *  - input_audio_format/output_audio_format/voice/turn_detection ligger numera under
+ *    session.audio.input.* respektive session.audio.output.* istället för direkt på session.
+ *  - "modalities" på session/response.create finns inte längre i GA-schemat.
+ *  - Servereventet för AI-ljud heter numera "response.output_audio.delta"
+ *    (tidigare "response.audio.delta").
+ *  - Standardmodell uppdaterad till "gpt-realtime" (gpt-4o-realtime-preview är avvecklad).
+ *  - response.created / response.done / input_audio_buffer.speech_started / error
+ *    är oförändrade händelsenamn i GA.
  *
  * DEMO-SYFTE: Detta är en demo-AI-receptionist. Den bokar inga tider,
  * använder inga externa verktyg/function-calls och har inget minne
@@ -30,9 +49,11 @@ const { randomUUID } = require('crypto');
 
 const PORT = process.env.PORT || 8095; // Render sätter PORT automatiskt
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-4o-realtime-preview';
+// GA-modell. gpt-4o-realtime-preview (Beta) är avvecklad - använd gpt-realtime
+// eller ev. gpt-realtime-mini. Override via env vid behov.
+const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime';
 const VOICE = process.env.OPENAI_VOICE || 'shimmer';
-const CODEC = 'pcm_24000'; // matchar OpenAI:s pcm16 @ 24kHz
+const CODEC = 'pcm_24000'; // 46elks-format, matchar audio/pcm @ 24kHz mot OpenAI
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice'; // sökväg 46elks ansluter till
 
 const INSTRUCTIONS =
@@ -170,14 +191,21 @@ async function handleCall(elksWs) {
   const to = helloMsg.to || '?';
   log(callId, `Samtal från ${from} till ${to}`);
 
-  // --- 2. Anslut till OpenAI Realtime API ----------------------------------
+  // --- 2. Anslut till OpenAI Realtime API (GA) -----------------------------
+  //
+  // GA-endpointen är fortfarande wss://api.openai.com/v1/realtime?model=...
+  // för server-till-server-anslutningar med vanlig API-nyckel, men:
+  //  - Ingen "OpenAI-Beta: realtime=v1"-header ska skickas längre.
+  //  - Autentisering sker med samma Authorization: Bearer-header som förut.
 
   openaiWs = new WebSocket(
     `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(OPENAI_MODEL)}`,
     {
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'OpenAI-Beta': 'realtime=v1',
+        // OBS: ingen "OpenAI-Beta"-header i GA-gränssnittet.
+        // Valfritt: skicka en stabil, anonymiserad identifierare för missbruksdetektion.
+        // 'OpenAI-Safety-Identifier': callId,
       },
     }
   );
@@ -204,22 +232,33 @@ async function handleCall(elksWs) {
     throw err;
   });
 
-  log(callId, `Ansluten till OpenAI Realtime (${OPENAI_MODEL})`);
+  log(callId, `Ansluten till OpenAI Realtime GA (${OPENAI_MODEL})`);
 
-  // --- 3. Konfigurera OpenAI-sessionen -------------------------------------
+  // --- 3. Konfigurera OpenAI-sessionen (GA-schema) -------------------------
+  //
+  // GA kräver session.type = "realtime". Ljudformat är nu ett objekt
+  // ({ type: "audio/pcm", rate: 24000 }) istället för strängen "pcm16", och
+  // voice/turn_detection/format ligger under session.audio.input / .output
+  // istället för direkt på session-objektet.
 
   safeSend(openaiWs, {
     type: 'session.update',
     session: {
-      modalities: ['audio', 'text'],
+      type: 'realtime',
       instructions: INSTRUCTIONS,
-      voice: VOICE,
-      input_audio_format: 'pcm16',
-      output_audio_format: 'pcm16',
-      turn_detection: {
-        type: 'server_vad',
-        threshold: 0.9,
-        silence_duration_ms: 800,
+      audio: {
+        input: {
+          format: { type: 'audio/pcm', rate: 24000 },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.9,
+            silence_duration_ms: 800,
+          },
+        },
+        output: {
+          format: { type: 'audio/pcm', rate: 24000 },
+          voice: VOICE,
+        },
       },
     },
   });
@@ -228,7 +267,6 @@ async function handleCall(elksWs) {
   safeSend(openaiWs, {
     type: 'response.create',
     response: {
-      modalities: ['audio', 'text'],
       instructions:
         'Hälsa kort på den som ringer och nämn att detta är en AI-receptionist-demo.',
     },
@@ -314,7 +352,9 @@ async function handleCall(elksWs) {
         isSpeaking = true;
         break;
 
-      case 'response.audio.delta':
+      // GA: eventet heter "response.output_audio.delta"
+      // (Beta hette det "response.audio.delta").
+      case 'response.output_audio.delta':
         safeSend(elksWs, { t: 'audio', data: msg.delta });
         break;
 
@@ -340,7 +380,8 @@ async function handleCall(elksWs) {
         break;
 
       default:
-        // Övriga event (t.ex. transcript deltas) ignoreras i denna demo.
+        // Övriga event (t.ex. transcript deltas, response.output_text.delta,
+        // conversation.item.*) ignoreras i denna demo.
         break;
     }
   });
@@ -363,7 +404,7 @@ async function handleCall(elksWs) {
 
 server.listen(PORT, () => {
   log(null, `Server igång på port ${PORT}, WebSocket-endpoint: ${ELKS_PATH}`);
-  log(null, `OpenAI-modell: ${OPENAI_MODEL}, ljudformat: ${CODEC}, röst: ${VOICE}`);
+  log(null, `OpenAI-modell: ${OPENAI_MODEL} (GA), ljudformat: ${CODEC}, röst: ${VOICE}`);
 });
 
 process.on('SIGTERM', () => {
