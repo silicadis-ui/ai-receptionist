@@ -339,19 +339,23 @@ async function handleCall(elksWs) {
         isSpeaking = false;
         break;
 
-      case 'input_audio_buffer.speech_started':
-        // Användaren har börjat prata - avbryt AI:n omedelbart (barge-in).
-        log(callId, 'Tal upptäckt hos uppringaren (speech_started).');
-        if (isSpeaking) {
-          log(callId, 'Avbryter pågående AI-svar (barge-in).');
-          safeSend(openaiWs, { type: 'response.cancel' });
-          safeSend(elksWs, { t: 'interrupt' });
-          isSpeaking = false;
-          // Enligt 46elks-protokollet måste "sending" skickas igen innan
-          // uppspelning kan återupptas efter en interrupt.
-          safeSend(elksWs, { t: 'sending', format: ELKS_CODEC });
-        }
-        break;
+     case 'input_audio_buffer.speech_started':
+  // Användaren har börjat prata - stoppa uppspelning mot uppringaren direkt.
+  log(callId, 'Tal upptäckt hos uppringaren (speech_started).');
+
+  // Stoppa alltid eventuell buffrad AI-röst hos 46elks direkt.
+  safeSend(elksWs, { t: 'interrupt' });
+
+  if (isSpeaking) {
+    log(callId, 'Avbryter pågående AI-svar (barge-in).');
+    safeSend(openaiWs, { type: 'response.cancel' });
+    isSpeaking = false;
+  }
+
+  // Enligt 46elks-protokollet måste "sending" skickas igen efter interrupt.
+  safeSend(elksWs, { t: 'sending', format: ELKS_CODEC });
+
+  break;
 
       case 'input_audio_buffer.speech_stopped':
         log(callId, 'Uppringaren slutade prata (speech_stopped).');
