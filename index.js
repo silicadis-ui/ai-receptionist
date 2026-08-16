@@ -38,16 +38,18 @@ const PORT = process.env.PORT || 8095; // Render sätter PORT automatiskt
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_PROMPT_ID = process.env.OPENAI_PROMPT_ID;
 const OPENAI_PROMPT_VERSION = process.env.OPENAI_PROMPT_VERSION || undefined; // valfritt
-const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime';
+const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-1.5';
+const OPENAI_VOICE = process.env.OPENAI_REALTIME_VOICE || 'cedar';
+const OPENAI_NOISE_REDUCTION = process.env.OPENAI_NOISE_REDUCTION || 'near_field';
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice';
 
 const AUDIO_FORMAT = { type: 'audio/pcm', rate: 24000 };
 const ELKS_CODEC = 'pcm_24000'; // 46elks-motsvarighet till audio/pcm @ 24kHz
 
 // Justerbar VAD-konfiguration (server_vad), utan att röra koden.
-const VAD_THRESHOLD = Number(process.env.OPENAI_VAD_THRESHOLD || 0.5);
+const VAD_THRESHOLD = Number(process.env.OPENAI_VAD_THRESHOLD || 0.65);
 const VAD_PREFIX_PADDING_MS = Number(process.env.OPENAI_VAD_PREFIX_PADDING_MS || 300);
-const VAD_SILENCE_DURATION_MS = Number(process.env.OPENAI_VAD_SILENCE_DURATION_MS || 500);
+const VAD_SILENCE_DURATION_MS = Number(process.env.OPENAI_VAD_SILENCE_DURATION_MS || 530);
 
 if (!OPENAI_API_KEY) {
   // eslint-disable-next-line no-console
@@ -221,9 +223,12 @@ async function handleCall(elksWs) {
       output_modalities: ['audio'],
       prompt: promptRef,
       audio: {
-        input: {
-          format: AUDIO_FORMAT,
-          turn_detection: {
+      input: {
+  format: AUDIO_FORMAT,
+  noise_reduction: {
+    type: OPENAI_NOISE_REDUCTION,
+  },
+  turn_detection: {
             type: 'server_vad',
             threshold: VAD_THRESHOLD,
             prefix_padding_ms: VAD_PREFIX_PADDING_MS,
@@ -232,8 +237,10 @@ async function handleCall(elksWs) {
             interrupt_response: true,
           },
         },
-        output: {
-          format: AUDIO_FORMAT,
+output: {
+  format: AUDIO_FORMAT,
+  voice: OPENAI_VOICE,
+},
         },
       },
     },
