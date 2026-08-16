@@ -240,7 +240,6 @@ async function handleCall(elksWs) {
 output: {
   format: AUDIO_FORMAT,
   voice: OPENAI_VOICE,
-},
         },
       },
     },
