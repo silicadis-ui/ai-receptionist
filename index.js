@@ -47,7 +47,7 @@ const AUDIO_FORMAT = { type: 'audio/pcm', rate: 24000 };
 const ELKS_CODEC = 'pcm_24000'; // 46elks-motsvarighet till audio/pcm @ 24kHz
 
 // Justerbar VAD-konfiguration (server_vad), utan att röra koden.
-const VAD_THRESHOLD = Number(process.env.OPENAI_VAD_THRESHOLD || 0.65);
+const VAD_THRESHOLD = Number(process.env.OPENAI_VAD_THRESHOLD || 0.75);
 const VAD_PREFIX_PADDING_MS = Number(process.env.OPENAI_VAD_PREFIX_PADDING_MS || 300);
 const VAD_SILENCE_DURATION_MS = Number(process.env.OPENAI_VAD_SILENCE_DURATION_MS || 530);
 
