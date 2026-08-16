@@ -39,7 +39,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_PROMPT_ID = process.env.OPENAI_PROMPT_ID;
 const OPENAI_PROMPT_VERSION = process.env.OPENAI_PROMPT_VERSION || undefined; // valfritt
 const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-1.5';
-const OPENAI_VOICE = process.env.OPENAI_REALTIME_VOICE || 'cedar';
+const OPENAI_VOICE = process.env.OPENAI_REALTIME_VOICE || 'marin';
 const OPENAI_NOISE_REDUCTION = process.env.OPENAI_NOISE_REDUCTION || 'near_field';
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice';
 
