@@ -354,7 +354,6 @@ output: {
 
   if (isSpeaking) {
     log(callId, 'Avbryter pågående AI-svar (barge-in).');
-    safeSend(openaiWs, { type: 'response.cancel' });
     isSpeaking = false;
   }
 
