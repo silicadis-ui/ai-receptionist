@@ -2,14 +2,14 @@
   "name": "46elks-ai-receptionist-demo",
   "version": "1.0.0",
   "description": "Demo: AI-receptionist som bryggar 46elks WebSocket-samtal mot OpenAI Realtime API",
-  "main": "server.js",
+  "main": "index.js",
   "type": "commonjs",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+   "start": "node index.js",
+   "dev": "nodemon index.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
