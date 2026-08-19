@@ -42,6 +42,8 @@ const OPENAI_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-1.5';
 const OPENAI_VOICE = process.env.OPENAI_REALTIME_VOICE || 'marin';
 const OPENAI_NOISE_REDUCTION = process.env.OPENAI_NOISE_REDUCTION || 'near_field';
 const ELKS_PATH = process.env.ELKS_WS_PATH || '/voice';
+const VAPI_PRIVATE_KEY = process.env.VAPI_PRIVATE_KEY;
+const VAPI_ASSISTANT_ID = process.env.VAPI_ASSISTANT_ID;
 
 const AUDIO_FORMAT = { type: 'audio/pcm', rate: 24000 };
 const ELKS_CODEC = 'pcm_24000'; // 46elks-motsvarighet till audio/pcm @ 24kHz
@@ -74,7 +76,47 @@ function log(callId, ...args) {
 function logError(callId, ...args) {
   console.error(`[${new Date().toISOString()}]${callId ? ` [${callId}]` : ''}`, ...args);
 }
+async function configureVapiAssistant() {
+  if (!VAPI_PRIVATE_KEY || !VAPI_ASSISTANT_ID) {
+    log(null, 'Vapi-konfiguration hoppas över: VAPI_PRIVATE_KEY eller VAPI_ASSISTANT_ID saknas.');
+    return;
+  }
 
+  const response = await fetch(
+    `https://api.vapi.ai/assistant/${VAPI_ASSISTANT_ID}`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${VAPI_PRIVATE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        backgroundSpeechDenoisingPlan: {
+          smartDenoisingPlan: {
+            enabled: true,
+          },
+          fourierDenoisingPlan: {
+            enabled: false,
+          },
+        },
+        stopSpeakingPlan: {
+          numWords: 0,
+          voiceSeconds: 0.5,
+          backoffSeconds: 1,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(
+      `Kunde inte uppdatera Vapi Assistant: ${response.status} ${errorBody}`
+    );
+  }
+
+  log(null, 'Vapi Assistant uppdaterad: Smart Denoising ON, Voice Seconds 0.5.');
+}
 // ---------------------------------------------------------------------------
 // Express-app (health check åt Render)
 // ---------------------------------------------------------------------------
@@ -393,9 +435,15 @@ output: {
 // Start
 // ---------------------------------------------------------------------------
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   log(null, `Server igång på port ${PORT}, WebSocket-endpoint: ${ELKS_PATH}`);
   log(null, `OpenAI-modell: ${OPENAI_MODEL}, prompt: ${OPENAI_PROMPT_ID}, ljudformat: ${ELKS_CODEC}`);
+
+  try {
+    await configureVapiAssistant();
+  } catch (err) {
+    logError(null, 'Vapi-konfiguration misslyckades:', err.message);
+  }
 });
 
 process.on('SIGTERM', () => {
